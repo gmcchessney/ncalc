@@ -1,37 +1,50 @@
 ﻿using NCalc;
-using NCalc.Exceptions;
+using NCalc.Factories;
+using NCalc.Play;
 
-while (true)
+var logicalExpression = LogicalExpressionFactory.Create("Repeat([value] > 10, 3)");
+logicalExpression.Accept(new ExpressionReParserVisitor());
+
+var e = new Expression(logicalExpression);
+
+var times = new Dictionary<string, int>() { };
+
+e.EvaluateFunction += (name, args) =>
 {
-    Console.Write("Enter an expression (or type 'exit' to quit): ");
-    var input = Console.ReadLine();
+    if (name == "Repeat")
+    {
+        var t = (int)args.Parameters[1].Evaluate() - 1;
+        var r = (bool)args.Parameters[0].Evaluate();
+        var id = (string)args.Parameters[2].Evaluate();
+        if (r && id != null)
+        {
+            if (!times.ContainsKey(id))
+            {
+                times[id] = t;
+            }
+            else
+            {
+                times[id]--;
+            }
+        }
 
-    if (input?.Trim().ToLower() == "exit")
-        break;
+        args.Result = r && times[id] == 0;
+    }
+};
 
-    if (string.IsNullOrWhiteSpace(input))
-    {
-        Console.WriteLine("Expression cannot be empty.");
-        continue;
-    }
-    
-    try
-    {
-        var expression = new Expression(input);
-        var result = expression.Evaluate();
-        Console.WriteLine("Result: {0}", result);
-    }
-    catch (NCalcParserException ex)
-    {
-        Console.WriteLine("Error parsing the expression: {0}", ex.Message);
-    }
-    catch (NCalcEvaluationException ex)
-    {
-        Console.WriteLine("Error evaluating the expression: {0}", ex.Message);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Unexpected error: {0}", ex.Message);
-    }
-}
+e.Parameters["value"] = 9;
+if ((bool)e.Evaluate() != false)
+    throw new Exception();
+
+e.Parameters["value"] = 11;
+if ((bool)e.Evaluate() != false)
+    throw new Exception();
+
+e.Parameters["value"] = 12;
+if ((bool)e.Evaluate() != false)
+    throw new Exception();
+
+e.Parameters["value"] = 13;
+if ((bool)e.Evaluate() != true)
+    throw new Exception();
 
